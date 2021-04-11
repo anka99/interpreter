@@ -1,0 +1,11 @@
+int function(string arg1, int arg2, bool arg3) {
+    return 3;
+}
+
+int main() {
+    int i;
+
+    i = function("string", 7, false);
+
+    return i;
+}

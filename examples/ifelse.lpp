@@ -1,0 +1,27 @@
+int fun1(int arg) {
+    if (arg > 0) {
+        return arg;
+    }
+    else {
+        return 0;
+    }
+} 
+
+void fun2(int &arg) {
+    arg++;
+}
+
+void fun3() {
+    int fun1() {
+        return 1;
+    }
+    return fun1();
+}
+
+int main() {
+    int i;
+    i = 5;
+    fun2(i);
+    i--;
+    return fun1(i);
+}
