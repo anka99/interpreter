@@ -2,6 +2,10 @@ int function(string arg1, int arg2, bool arg3) {
     return 3;
 }
 
+int -> bool -> string arrowFunction1 = (int x) => (bool y) => {
+    return "z";
+}
+
 int main() {
     int i;
 

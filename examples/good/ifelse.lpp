@@ -1,5 +1,6 @@
 int fun1(int arg) {
-    if (arg > 0) {
+    int i = (((3)));
+    if (arg > 0 || (arg < 3 && arg > 1)) {
         return arg;
     }
     else {
@@ -11,7 +12,7 @@ void fun2(int &arg) {
     arg++;
 }
 
-void fun3() {
+void fun3 () {
     int fun1() {
         return 1;
     }

@@ -1,0 +1,10 @@
+int main() {
+    // comment nr 1
+    /* 
+        comment 
+        nr 2 
+    */
+    print("Hello world");
+
+    return 0;
+}

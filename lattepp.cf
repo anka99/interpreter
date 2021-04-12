@@ -14,6 +14,8 @@ Decl.      Decl ::= Type [Item] ";" ;
 
 FnDecl.    Decl ::= Type Ident "(" [Arg] ")" Block ;
 
+LFnDecl.   Decl ::= LFDecl ;
+
 separator  Decl "" ;
 
 Arg. 	   Arg ::= Type Ident ;
@@ -78,11 +80,15 @@ Bool.      Type ::= "bool" ;
 
 Void.      Type ::= "void" ;
 
-internal   Fun. Type ::= Type "(" [Type] ")" ;
+FnType.    Type ::= ArgType "->" Type ;
+
+ArgType.   ArgType ::= 
 
 separator  Type "," ;
 
 -- Expressions ---------------------------------------------
+
+ELFn.      Expr6 ::= LFun ;
 
 EVar.      Expr6 ::= Ident ;
 
