@@ -1,0 +1,20 @@
+int main() {
+    // comment nr 1 test
+    /* 
+        comment nr 2 test
+    */
+    printf("%s", "Hello world\n");
+
+    printf("%d", 42);
+
+    printf("\n");
+
+    printf("%d", false); 
+
+    return 0;
+}
+
+/* expected output : 
+Hello world
+42
+0*/

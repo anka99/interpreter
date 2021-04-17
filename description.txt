@@ -1,0 +1,29 @@
+E-- - język Latte opisany w 
+https://www.mimuw.edu.pl/~ben/Zajecia/Mrj2020/Latte/, uzupełniony o kilka 
+funkcjonalności takich jak:
+
+> Instrukcja printf obsługująca 3 typy - int, string i bool, o składni jak w C 
+(przykładowy kod w examples/good/hello.emm)
+
+> Prekazywanie argumentu przez wartość i przez referencję - o sposobie w jaki 
+zostanie przekazany argument decyduje deklaracja funkcji, jak w C++.
+(przykładowy kod w examples/good/ifelse.emm)
+
+> Zmienne globalne - deklarowane w ciele programu, jak w C.
+(przykładowy kod w examples/good/array.emm)
+
+> Statyczne typowanie
+
+> Dowolnie zagnieżdżone definicje funkcji - funkcję można zadeklarować w
+dowolnym bloku instrukcji z zachowaniem zasad statycznego przesłaniania.
+(przykładowy kod w examples/good/fun.emm)
+
+>Tablice indeksowane o stałym rozmiarze - po zadeklarowaniu tablicy o danej 
+długości można przypisywać i odczytywać wartości z jej komórek, jak w C. 
+(przykłądowy kod w examples/good/array.emm)
+
+>Instrukcje break i continue przerywające pętlę
+(przykładowy kod w examples/good/while.emm)
+
+Poza tym E-- spełnia wszystkie funkcjonalności Latte. 
+Gramatyka E-- znajduje się w pliku emm.cf.

@@ -1,7 +1,0 @@
-int main() {
-    // comment nr 1 test
-    // comment nr 2 test
-    print("Hello world");
-
-    return 0;
-}
