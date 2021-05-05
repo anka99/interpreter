@@ -29,7 +29,7 @@ usage = do
   putStrLn $ unlines
     [ "usage: Call with one of the following argument combinations:"
     , "  --help          Display this help message."
-    , "  (no arguments)  Parse stdin."
-    , "  (files)         Parse content of files."
+    , "  (no arguments)  Interprets stdin."
+    , "  (files)         Interprets content of files."
     ]
   exitFailure

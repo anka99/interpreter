@@ -2,11 +2,9 @@
 
 entrypoints Program ;
 
-Program.   Program ::= [TopDef] ;
+Program.   Program ::= [Decl] ;
 
-TopDef.	   TopDef ::= Decl ;
-
-separator nonempty TopDef "" ;
+separator nonempty Decl "" ;
 
 -- declarations --------------------------------------------
 

@@ -15,4 +15,23 @@ type Err        = Either String
 type ParseFun a = [Token] -> Err a
 
 interpret :: String -> IO ()
-interpret = putStrLn
+interpret = run pProgram
+
+run :: (Print a, Show a) => ParseFun a -> String -> IO ()
+run p s =
+  case p ts of
+    Left err -> do
+      putStrLn "\nParse              Failed...\n"
+      putStrLn "Tokens:"
+      putStrLn $ show ts
+      putStrLn err
+      exitFailure
+    Right tree -> do
+      putStrLn "\nParse Successful!"
+      interpretProgram tree
+      exitSuccess
+  where
+  ts = myLexer s
+
+interpretProgram :: (Show a, Print a) => a -> IO ()
+interpretProgram tree = putStrLn $ show tree
