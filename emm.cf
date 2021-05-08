@@ -12,7 +12,7 @@ Decl.      Decl ::= Type [Item] ";" ;
 
 FnDecl.    Decl ::= Type Ident "(" [Arg] ")" Block ;
 
-Arg. 	   Arg ::= Type Ident ;
+Arg. 	     Arg ::= Type Ident ;
 
 ArgRef.    Arg ::= Type "&" Ident ;
 
