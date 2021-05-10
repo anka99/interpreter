@@ -17,7 +17,7 @@ import ParEmm
 import PrintEmm
 import SkelEmm ()
 
-import Eval ( eval, interpretDeclList )
+import Eval ( eval, interpretDeclList, evalFunction )
 import Turbo
 
 type Err        = Either String
@@ -30,16 +30,19 @@ interpret content =
       putStrLn err
       exitFailure
     Right tree -> do
-      putStrLn "\nParse Successful!"
-      (env, store) <- runTurbo empty empty (runProgram tree)
-      putStrLn $ show store
-      putStrLn $ show env
+      (res, store) <- runTurbo empty empty (runProgram tree)
+      case res of
+        Right (env, val) -> do
+          putStrLn $ show store
+          putStrLn $ show env
+          putStrLn $ show val
+        Left err -> putStrLn err
       -- exitWith interpretProgram tree
   where
   parsedContent = pProgram $ myLexer content
 
-runProgram :: Program -> TurboMonad (Env, Store)
+runProgram :: Program -> TurboMonad (Env, Value)
 runProgram (Program pos decls) = do
   env <- interpretDeclList decls
-  store <- get
-  return (env, store)
+  value <- local (changeEnvTo env) $ evalFunction Nothing (Ident "main")
+  return (env, value)

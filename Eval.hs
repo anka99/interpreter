@@ -29,7 +29,7 @@ interpretDecl :: Decl -> TurboMonad Env
 interpretDecl (Decl pos t items) = addItemList items
 interpretDecl (FnDecl pos t i args block) = do
   env <- ask
-  addItemVal i $ FnVal env args block
+  addItemVal i $ FnVal env args  $ BStmt pos block
 
 addItemList :: [Item] -> TurboMonad Env
 addItemList [] = ask
@@ -40,11 +40,17 @@ addItemList (i:l) = do
 newLoc :: Store -> Loc
 newLoc s = size s
 
+setValue :: Loc -> Value -> TurboMonad Env
+setValue loc val = do
+  store <- get
+  put $ insert loc val store
+  ask
+
 addItemVal :: Ident -> Value -> TurboMonad Env
 addItemVal ident val = do
   env <- ask
   store <- get
-  put $ insert (newLoc store) val store
+  setValue (newLoc store) val
   return $ insert ident (newLoc store) env
 
 addItem :: Item -> TurboMonad Env
@@ -59,6 +65,32 @@ addItem (Init pos ident expr) = eval expr >>= addItemVal ident
 interpretStmt :: Stmt -> TurboMonad Env
 interpretStmt (SDecl pos decl) = interpretDecl decl
 interpretStmt (BStmt pos block) = interpretBlock block
+interpretStmt (Ret pos e) = eval e >>= setRetVal --TODO kończyć wykonanie funkcji
+
+interpretStmt (Ass pos ident expr) = do
+  loc <- getLoc pos ident
+  val <- eval expr
+  setValue loc val
+
+interpretStmt (Cond pos expr s) =
+  executeCondAlt pos expr (interpretStmt s) ask
+
+interpretStmt (CondElse pos expr s1 s2) =
+  executeCondAlt pos expr (interpretStmt s1) (interpretStmt s2)
+
+interpretStmt (While pos e s) = do
+  env <- executeCondAlt pos e (interpretStmt s) ask
+  local (changeEnvTo env) $ executeCondAlt pos e (interpretStmt s) ask
+
+-- interpretStmt (Incr pos ident) = do
+
+executeCondAlt :: Position -> Expr -> TurboMonad Env -> TurboMonad Env -> TurboMonad Env
+executeCondAlt pos expr alt1 alt2 = do
+  val <- eval expr
+  case val of
+    BoolVal True -> alt1
+    BoolVal False -> alt2
+    _ -> throwError $ show pos ++ " Non-boolean value as a result of conditional statement."
 
 interpretBlock :: Block -> TurboMonad Env
 interpretBlock (Block t stmt) = interpretStmtList stmt
@@ -68,13 +100,13 @@ interpretStmtList [] = ask
 interpretStmtList (s:l) = do
   env <- interpretStmt s
   local (changeEnvTo env) $ interpretStmtList l
-  
 
 ------------------------ Expressions -------------------------------------------
 
-
 eval :: Expr -> TurboMonad Value
 eval (ELitInt pos x) = return $ IntVal x
+eval (ELitTrue pos) = return $ BoolVal True
+eval (ELitFalse pos) = return $ BoolVal False
 
 eval (EMul pos e1 op e2) = do
   IntVal v1 <- eval e1
@@ -90,10 +122,10 @@ eval (Neg pos e) = do
   IntVal v <- eval e
   return  $ IntVal $ (-1) * v
 
-eval (EVar pos ident) = getLoc ident >>= getVal
+eval (EVar pos ident) = getLoc pos ident >>= (getVal pos)
 
 --TODO : arguments
-eval (EApp pos ident exprs) = evalFunction ident
+eval (EApp pos ident exprs) = evalFunction pos ident
 
 evalMulOp :: MulOp -> Integer -> Integer -> Integer
 evalMulOp (Times pos) = (*)
@@ -104,7 +136,8 @@ evalAddOp :: AddOp -> Integer -> Integer -> Integer
 evalAddOp (Plus pos) = (+)
 evalAddOp (Minus pos) = (-)
 
-evalFunction :: Ident -> TurboMonad Value
-evalFunction ident = do
-   FnVal env args block <- getLoc ident >>= getVal
-   return $ IntVal 0
+evalFunction :: Position -> Ident -> TurboMonad Value
+evalFunction pos ident = do
+   FnVal env args block <- getLoc pos ident >>= getVal pos
+   local (changeEnvTo env) $ interpretStmt block
+   getRetVal pos

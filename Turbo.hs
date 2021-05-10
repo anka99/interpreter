@@ -10,7 +10,7 @@ import AbsEmm
 
 import qualified Data.Map as Map
 
-data Value = IntVal Integer | BoolVal Bool | StringVal String | FnVal Env [Arg] Block | NullVal
+data Value = IntVal Integer | BoolVal Bool | StringVal String | FnVal Env [Arg] Stmt | NullVal
     deriving (Eq, Ord, Show)
 
 type Loc = Int
@@ -20,33 +20,47 @@ type Store = Map.Map Loc Value
 -- TODO : być może coś zmienić, bo Mr. C.env
 type TurboMonad a = ReaderT Env (ExceptT String (StateT Store IO)) a
 
+type Position = BNFC'Position
+
+retLoc :: Loc
+retLoc = -1
+
 runTurbo :: Env -> Store -> TurboMonad a -> IO (Either String a, Store)
 runTurbo env store e = runStateT (runExceptT (runReaderT e env)) store
 
 changeEnvTo :: Env -> Env -> Env
 changeEnvTo to from = to
 
-getLoc :: Ident -> TurboMonad Loc
-getLoc ident = do
+getLoc :: Position -> Ident -> TurboMonad Loc
+getLoc pos ident = do
   env <- ask
   case Map.lookup ident env of
     Just loc -> return loc
-    Nothing -> throwError "Undeclared variable"
+    Nothing -> throwError $ errorMsg pos "Undeclared variable"
 
 -- TODO: remove "fucking"
-getVal :: Loc -> TurboMonad Value
-getVal loc = do
+getVal :: Position -> Loc -> TurboMonad Value
+getVal pos loc = do
   store <- get
   case Map.lookup loc store of
-    Just NullVal -> throwError "Uninitialized value"
+    Just NullVal -> throwError $ errorMsg pos "Uninitialized value"
     Just val -> return val
-    Nothing -> throwError "This should have never happend and if did we can safely assume, that author of this code is fucking stupid."
+    Nothing -> throwError $ errorMsg pos "This should have never happend and if did we can safely assume, that author of this code is fucking stupid."
 
--- getValue :: Loc -> TurboMonad (Maybe Value)
--- getValue loc = return $ get >>= lookup loc
+setRetVal :: Value -> TurboMonad Env
+setRetVal val = do
+  store <- get
+  put $ Map.insert retLoc val store
+  ask
 
--- getVal :: Ident -> TurboMonad (Maybe Value)
--- getVal ident = do
---   store <- get
---   env <- ask
---   return $ lookup (lookup )
+getRetVal :: Position -> TurboMonad Value
+getRetVal pos = getVal pos retLoc
+
+getIdentValue :: Position -> Ident -> TurboMonad Value
+getIdentValue pos ident = (getLoc pos ident) >>= (getVal pos)
+
+errorMsg :: Position -> String -> String
+errorMsg (Just (line, col)) msg =
+  "Error in line " ++ show line ++ ", column " ++ show col ++ ": " ++ msg
+
+errorMsg Nothing _ = "Function main not found."
