@@ -17,8 +17,7 @@ import ParEmm
 import PrintEmm
 import SkelEmm ()
 
-import Expr ( eval )
-import Decl ( interpretDecl )
+import Eval ( eval, interpretDeclList )
 import Turbo
 
 type Err        = Either String
@@ -44,9 +43,3 @@ runProgram (Program pos decls) = do
   env <- interpretDeclList decls
   store <- get
   return (env, store)
-
-interpretDeclList :: [Decl] -> TurboMonad Env
-interpretDeclList [] = ask
-interpretDeclList (d:l) = do
-  env <- interpretDecl d
-  local (changeEnvTo env) $ interpretDeclList l

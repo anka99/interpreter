@@ -1,6 +1,7 @@
-module Expr where
+module Stmt where
 
 import Turbo
+import Decl ( interpretDecl )
 
 import AbsEmm
 import LexEmm
@@ -13,7 +14,29 @@ import Control.Monad.State
 import System.IO
 import Control.Monad.Reader
 
+import Data.Map
 import Prelude
+
+
+interpretStmt :: Stmt -> TurboMonad Env
+interpretStmt (SDecl pos decl) = interpretDecl decl
+interpretStmt (BStmt pos block) = interpretBlock block
+
+interpretBlock :: Block -> TurboMonad Env
+interpretBlock (Block t stmt) = interpretStmtList stmt
+
+interpretStmtList :: [Stmt] -> TurboMonad Env
+interpretStmtList [] = ask
+interpretStmtList (s:l) = do
+  env <- interpretStmt s
+  local (changeEnvTo env) $ interpretStmtList l
+
+interpretStmt :: Stmt -> TurboMonad Env
+interpretStmt s = ask
+
+
+---------------- Expressions ---------------------------------------------------
+
 
 eval :: Expr -> TurboMonad Value
 eval (ELitInt pos x) = return $ IntVal x

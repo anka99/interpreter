@@ -10,7 +10,7 @@ import AbsEmm
 
 import qualified Data.Map as Map
 
-data Value = IntVal Integer | BoolVal Bool | StringVal String | FuncVal Env [Arg] Block | NullVal
+data Value = IntVal Integer | BoolVal Bool | StringVal String | FnVal Env [Arg] Block | NullVal
     deriving (Eq, Ord, Show)
 
 type Loc = Int

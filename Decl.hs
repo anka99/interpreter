@@ -17,8 +17,17 @@ import Data.Map
 
 import Expr ( eval )
 
+interpretDeclList :: [Decl] -> TurboMonad Env
+interpretDeclList [] = ask
+interpretDeclList (d:l) = do
+  env <- interpretDecl d
+  local (changeEnvTo env) $ interpretDeclList l
+
 interpretDecl :: Decl -> TurboMonad Env
 interpretDecl (Decl pos t items) = addItemList items
+interpretDecl (FnDecl pos t i args block) = do
+  env <- ask
+  addItemVal i $ FnVal env args block
 
 addItemList :: [Item] -> TurboMonad Env
 addItemList [] = ask
