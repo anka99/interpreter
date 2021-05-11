@@ -28,17 +28,15 @@ interpretDeclList (d:l) = do
 interpretDecl :: Decl -> TurboMonad Env
 interpretDecl (Decl pos t items) = addItemList items
 interpretDecl (FnDecl pos t i args block) = do
-  env <- ask
-  addItemVal i $ FnVal env args  $ BStmt pos block
+  env <- putIdent pos i
+  store <- get
+  local (changeEnvTo env) $ setVal (newLoc store) $ FnVal env args $ BStmt pos block
 
 addItemList :: [Item] -> TurboMonad Env
 addItemList [] = ask
 addItemList (i:l) = do
   env <- addItem i
   local (changeEnvTo env) $ addItemList l
-
-newLoc :: Store -> Loc
-newLoc s = size s
 
 setValue :: Loc -> Value -> TurboMonad Env
 setValue loc val = do
@@ -82,7 +80,19 @@ interpretStmt (While pos e s) = do
   env <- executeCondAlt pos e (interpretStmt s) ask
   local (changeEnvTo env) $ executeCondAlt pos e (interpretStmt s) ask
 
--- interpretStmt (Incr pos ident) = do
+interpretStmt (Incr pos ident) = do
+  val <- getIdentValue pos ident
+  case val of
+    IntVal x -> setIdentValue pos ident $ IntVal (x + 1)
+    _ -> throwError $ errorPos pos $ errorMsg $ TypeErr "int"
+
+interpretStmt (Decr pos ident) = do
+  val <- getIdentValue pos ident
+  case val of
+    IntVal x -> setIdentValue pos ident $ IntVal (x - 1)
+    _ -> throwError $ errorPos pos $ errorMsg $ TypeErr "int"
+
+-- interpretStmt ()
 
 executeCondAlt :: Position -> Expr -> TurboMonad Env -> TurboMonad Env -> TurboMonad Env
 executeCondAlt pos expr alt1 alt2 = do
@@ -90,7 +100,7 @@ executeCondAlt pos expr alt1 alt2 = do
   case val of
     BoolVal True -> alt1
     BoolVal False -> alt2
-    _ -> throwError $ show pos ++ " Non-boolean value as a result of conditional statement."
+    _ -> throwError $ show pos ++ "Non-boolean value as a result of conditional statement."
 
 interpretBlock :: Block -> TurboMonad Env
 interpretBlock (Block t stmt) = interpretStmtList stmt
