@@ -93,5 +93,5 @@ errorMsg (TypeErr s) = "Mismatching type. Expected " ++ s
 errorMsg (MulDecl s) = "Multiple declaration of " ++ s
 errorMsg (Undecl s) = "Undeclared variable " ++ s
 errorMsg (Uninit) = "Uninitialized value"
-errorMsg (Critical) = "This should have never happend and if did we can  " ++
-  "safely assume, that author of this code is fucking stupid." --TODO remove "fucking"
+errorMsg (Critical) = "This should have never happend and if did, we can  " ++
+  "safely assume that author of this code is fucking stupid." --TODO remove "fucking"

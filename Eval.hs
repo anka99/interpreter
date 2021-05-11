@@ -111,7 +111,9 @@ interpretStmtList (s:l) = do
   env <- interpretStmt s
   local (changeEnvTo env) $ interpretStmtList l
 
+
 ------------------------ Expressions -------------------------------------------
+
 
 eval :: Expr -> TurboMonad Value
 eval (ELitInt pos x) = return $ IntVal x
@@ -124,8 +126,8 @@ eval (EMul pos e1 op e2) = do
   return $ IntVal $ evalMulOp op v1 v2
 
 eval (EAdd pos e1 op e2) = do
-  IntVal v1 <- eval e1
-  IntVal v2 <- eval e2
+  v1 <- eval e1 >>= evalIntValSafe pos
+  v2 <- eval e2 >>= evalIntValSafe pos
   return $ IntVal $ evalAddOp op v1 v2
 
 eval (Neg pos e) = do
@@ -136,6 +138,46 @@ eval (EVar pos ident) = getLoc pos ident >>= (getVal pos)
 
 --TODO : arguments
 eval (EApp pos ident exprs) = evalFunction pos ident
+
+eval (EAnd pos e1 e2) = evalAndOr pos e1 e2 (&&)
+
+eval (EOr pos e1 e2) = evalAndOr pos e1 e2 (||)
+
+eval (ERel pos e1 op e2) = do
+  v1 <- eval e1
+  v2 <- eval e2
+  evalRel pos v1 op v2
+
+evalAndOr :: Position -> Expr -> Expr -> (Bool -> Bool -> Bool) -> TurboMonad Value
+evalAndOr pos e1 e2 op = do
+  v1 <- eval e1 >>= evalBoolValSafe pos
+  v2 <- eval e2 >>= evalBoolValSafe pos
+  return $ BoolVal $ op v1 v2
+
+evalRel :: Position -> Value -> RelOp -> Value -> TurboMonad Value
+evalRel pos (IntVal v1) op (IntVal v2) = return $ BoolVal $ evalRelOp op v1 v2
+evalRel pos (StringVal s1) op (StringVal s2) = return $ BoolVal $ evalRelOp op s1 s2
+evalRel pos _ _ _ = throwError $ errorPos pos $ errorMsg $ TypeErr "left: string, right: string or left: int, right: int"
+
+evalRelOp :: Ord a => RelOp -> a -> a -> Bool
+evalRelOp (LTH pos) = (<)
+evalRelOp (LE pos) = (<=)
+evalRelOp (GTH pos) = (>)
+evalRelOp (GE pos) = (>=)
+evalRelOp (EQU pos) = (==)
+evalRelOp (NE pos) = (/=)
+
+evalIntValSafe :: Position -> Value -> TurboMonad Integer
+evalIntValSafe pos v = do
+  case v of
+    IntVal x -> return x
+    _ -> throwError $ errorPos pos $ errorMsg $ TypeErr "int"
+
+evalBoolValSafe :: Position -> Value -> TurboMonad Bool
+evalBoolValSafe pos v = do
+  case v of
+    BoolVal b -> return b
+    _ -> throwError $ errorPos pos $ errorMsg $ TypeErr "bool"
 
 evalMulOp :: MulOp -> Integer -> Integer -> Integer
 evalMulOp (Times pos) = (*)
