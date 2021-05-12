@@ -33,8 +33,8 @@ interpret content =
       (res, store) <- runTurbo empty empty (runProgram tree)
       case res of
         Right (env, val) -> do
-          putStrLn $ show store
-          putStrLn $ show env
+          -- putStrLn $ show store
+          -- putStrLn $ show env
           putStrLn $ show val
         Left err -> putStrLn err
       -- exitWith interpretProgram tree

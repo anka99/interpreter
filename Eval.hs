@@ -13,7 +13,8 @@ import Control.Monad.State
 import System.IO
 import Control.Monad.Reader
 
-import Data.Map
+import qualified Data.Map as M
+import qualified Data.List as L
 
 
 ------------------------ Declarations ------------------------------------------
@@ -38,24 +39,17 @@ addItemList (i:l) = do
   env <- addItem i
   local (changeEnvTo env) $ addItemList l
 
-setValue :: Loc -> Value -> TurboMonad Env
-setValue loc val = do
-  store <- get
-  put $ insert loc val store
-  ask
-
 addItemVal :: Ident -> Value -> TurboMonad Env
 addItemVal ident val = do
   env <- ask
   store <- get
-  setValue (newLoc store) val
-  return $ insert ident (newLoc store) env
+  setVal (newLoc store) val
+  return $ M.insert ident (newLoc store) env
 
 addItem :: Item -> TurboMonad Env
 addItem (NoInit pos ident) = addItemVal ident NullVal
 addItem (Init pos ident expr) = eval expr >>= addItemVal ident
 -- TODO array
-
 
 ------------------------ Statements --------------------------------------------
 
@@ -68,7 +62,7 @@ interpretStmt (Ret pos e) = eval e >>= setRetVal --TODO kończyć wykonanie funk
 interpretStmt (Ass pos ident expr) = do
   loc <- getLoc pos ident
   val <- eval expr
-  setValue loc val
+  setVal loc val
 
 interpretStmt (Cond pos expr s) =
   executeCondAlt pos expr (interpretStmt s) ask
@@ -77,8 +71,8 @@ interpretStmt (CondElse pos expr s1 s2) =
   executeCondAlt pos expr (interpretStmt s1) (interpretStmt s2)
 
 interpretStmt (While pos e s) = do
-  env <- executeCondAlt pos e (interpretStmt s) ask
-  local (changeEnvTo env) $ executeCondAlt pos e (interpretStmt s) ask
+  executeCondAlt pos e (interpretStmt s) ask
+  executeCondAlt pos e (interpretStmt (While pos e s)) ask
 
 interpretStmt (Incr pos ident) = do
   val <- getIdentValue pos ident
@@ -92,7 +86,23 @@ interpretStmt (Decr pos ident) = do
     IntVal x -> setIdentValue pos ident $ IntVal (x - 1)
     _ -> throwError $ errorPos pos $ errorMsg $ TypeErr "int"
 
--- interpretStmt ()
+interpretStmt (SExp pos e) = interpretSExp pos e
+
+interpretStmt s = do
+  liftIO $ putStrLn $ show s
+  ask
+
+interpretSExp :: Position -> Expr -> TurboMonad Env
+interpretSExp p1 (EApp p2 (Ident "print") [e]) = do
+  v <- eval e
+  liftIO $ putStrLn $ show v
+  ask
+
+interpretSExp p1 (EApp p2 (Ident "print") l) =
+  throwError $ errorPos p1 $ errorMsg $ ArgNum "print" (toInteger $ L.length l) 1
+
+interpretSExpr _ _ = ask --TODO: wypisywać w interactive
+
 
 executeCondAlt :: Position -> Expr -> TurboMonad Env -> TurboMonad Env -> TurboMonad Env
 executeCondAlt pos expr alt1 alt2 = do
@@ -143,10 +153,25 @@ eval (EAnd pos e1 e2) = evalAndOr pos e1 e2 (&&)
 
 eval (EOr pos e1 e2) = evalAndOr pos e1 e2 (||)
 
+eval (Not pos e) = do
+  b <- eval e >>= evalBoolValSafe pos
+  return $ BoolVal $ not b
+
 eval (ERel pos e1 op e2) = do
   v1 <- eval e1
   v2 <- eval e2
   evalRel pos v1 op v2
+
+eval (EString pos s) = return $ StringVal s
+
+-- data MulAdd' a = MulOp a | AddOp a
+-- type MulAdd = MulAdd' Position
+--
+-- evalMulAdd:: Position -> Expr -> MulAdd -> (MulAdd -> Integer -> Integer -> Integer) -> Expr -> TurboMonad Value
+-- evalMulAdd pos e1 op fun e2 = do
+--   v1 <- eval e1 >>= evalIntValSafe pos
+--   v2 <- eval e2 >>= evalIntValSafe pos
+--   return $ IntVal $ fun op v1 v2
 
 evalAndOr :: Position -> Expr -> Expr -> (Bool -> Bool -> Bool) -> TurboMonad Value
 evalAndOr pos e1 e2 op = do

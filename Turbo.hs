@@ -10,7 +10,12 @@ import AbsEmm
 
 import qualified Data.Map as Map
 
-data Value = IntVal Integer | BoolVal Bool | StringVal String | FnVal Env [Arg] Stmt | NullVal
+data Value
+  = IntVal Integer
+  | BoolVal Bool
+  | StringVal String
+  | FnVal Env [Arg] Stmt
+  | NullVal
     deriving (Eq, Ord, Show)
 
 type Loc = Int
@@ -45,7 +50,7 @@ getVal pos loc = do
   case Map.lookup loc store of
     Just NullVal -> throwError $ errorPos pos $ errorMsg Uninit
     Just val -> return val
-    Nothing -> throwError $ errorMsg Critical
+    Nothing -> throwError $ errorPos pos $ errorMsg NoRet
 
 setRetVal :: Value -> TurboMonad Env
 setRetVal val = setVal retLoc val
@@ -85,13 +90,21 @@ errorPos (Just (line, col)) msg =
 
 errorPos Nothing _ = "Function main not found."
 
-data ErrType = TypeErr String | MulDecl String | Undecl String | Uninit | Critical
-  deriving (Show)
+data ErrType
+  = TypeErr String
+  | MulDecl String
+  | Undecl String
+  | Uninit
+  | NoRet
+  | ArgNum String Integer Integer
+    deriving (Show)
 
 errorMsg :: ErrType -> String
 errorMsg (TypeErr s) = "Mismatching type. Expected " ++ s
 errorMsg (MulDecl s) = "Multiple declaration of " ++ s
 errorMsg (Undecl s) = "Undeclared variable " ++ s
 errorMsg (Uninit) = "Uninitialized value"
-errorMsg (Critical) = "This should have never happend and if did, we can  " ++
-  "safely assume that author of this code is fucking stupid." --TODO remove "fucking"
+errorMsg (NoRet) = "Function returns no value" --TODO remove "fucking"
+errorMsg (ArgNum s i1 i2) =
+  "Invalid number of arguments for function " ++ s ++ ": " ++ show i1 ++
+  ".Expected " ++ show i2
