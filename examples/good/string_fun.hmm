@@ -1,0 +1,11 @@
+string s = "test";
+
+string fun(string str) {
+  return str;
+}
+
+int main() {
+  string res = fun(s);
+  print(res);
+  return 0;
+}

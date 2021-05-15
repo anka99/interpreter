@@ -72,6 +72,11 @@ setVal loc val = do
   put $ Map.insert loc val store
   ask
 
+setLoc :: Ident -> Loc -> TurboMonad Env
+setLoc i l = do
+  env <- ask
+  return $ Map.insert i l env
+
 newLoc :: Store -> Loc
 newLoc s = Map.size s
 
@@ -96,7 +101,9 @@ data ErrType
   | Undecl String
   | Uninit
   | NoRet
-  | ArgNum String Integer Integer
+  | ArgNum Ident Integer Integer
+  | NotFun String
+  | NotRef
     deriving (Show)
 
 errorMsg :: ErrType -> String
@@ -104,7 +111,9 @@ errorMsg (TypeErr s) = "Mismatching type. Expected " ++ s
 errorMsg (MulDecl s) = "Multiple declaration of " ++ s
 errorMsg (Undecl s) = "Undeclared variable " ++ s
 errorMsg (Uninit) = "Uninitialized value"
-errorMsg (NoRet) = "Function returns no value" --TODO remove "fucking"
-errorMsg (ArgNum s i1 i2) =
-  "Invalid number of arguments for function " ++ s ++ ": " ++ show i1 ++
+errorMsg (NoRet) = "Function returns no value"
+errorMsg (ArgNum ident i1 i2) =
+  "Invalid number of arguments for function " ++ show ident ++ ": " ++ show i1 ++
   ".Expected " ++ show i2
+errorMsg (NotFun s) = "Not a function: " ++ s;
+errorMsg NotRef  = "Not a variable name"

@@ -1,0 +1,11 @@
+int fun(int &x) {
+  x++;
+  return 0;
+}
+
+int main () {
+  int i = 0;
+  int y = fun(i);
+  print(i);
+  return y;
+}

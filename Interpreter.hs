@@ -44,5 +44,5 @@ interpret content =
 runProgram :: Program -> TurboMonad (Env, Value)
 runProgram (Program pos decls) = do
   env <- interpretDeclList decls
-  value <- local (changeEnvTo env) $ evalFunction Nothing (Ident "main")
+  value <- local (changeEnvTo env) $ evalFunction Nothing (Ident "main") []
   return (env, value)

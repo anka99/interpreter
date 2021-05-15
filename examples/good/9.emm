@@ -1,0 +1,14 @@
+int main () {
+  int x = 1;
+  int p() {
+    x = 2;
+    return 2;
+  }
+  {
+    int x = 3;
+    int y = p();
+    print(x);
+  }
+  print(x);
+  return x;
+}
