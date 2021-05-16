@@ -12,3 +12,7 @@ int main () {
   print(x);
   return x;
 }
+
+// expected output:
+// 3
+// 2

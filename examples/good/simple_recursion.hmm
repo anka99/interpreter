@@ -11,5 +11,9 @@ int x () {
 }
 
 int main() {
-  return x();
+  print(i);
+  print(x());
+  return 0;
 }
+
+//expected output : 5

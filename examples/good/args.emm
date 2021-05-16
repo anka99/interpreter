@@ -8,3 +8,8 @@ int fun (int x, bool y, string z) {
 int main() {
   return fun(2, true, "test");
 }
+
+// expected output :
+// 2
+// true
+// test

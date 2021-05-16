@@ -19,6 +19,7 @@ import SkelEmm ()
 
 import Eval ( eval, interpretDeclList, evalFunction )
 import Turbo
+import Memory
 
 type Err        = Either String
 type ParseFun a = [Token] -> Err a
@@ -30,7 +31,7 @@ interpret content =
       putStrLn err
       exitFailure
     Right tree -> do
-      (res, store) <- runTurbo empty empty (runProgram tree)
+      (res, store) <- runTurbo emptyEnv empty (runProgram tree)
       case res of
         Right (env, val) -> do
           -- putStrLn $ show store

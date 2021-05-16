@@ -1,6 +1,15 @@
 module Eval where
 
 import Turbo
+import Memory ( declareInit,
+                changeEnvTo,
+                increaseScope,
+                declareNoInit,
+                changeVal,
+                readVal,
+                getLoc,
+                setLoc )
+import Err
 
 import AbsEmm
 import LexEmm
@@ -13,7 +22,6 @@ import Control.Monad.State
 import System.IO
 import Control.Monad.Reader
 
-import qualified Data.Map as M
 import qualified Data.List as L
 
 
@@ -29,9 +37,9 @@ interpretDeclList (d:l) = do
 interpretDecl :: Decl -> TurboMonad Env
 interpretDecl (Decl pos t items) = addItemList items
 interpretDecl (FnDecl pos t i args block) = do
-  env <- putIdent pos i
-  store <- get
-  local (changeEnvTo env) $ setVal (newLoc store) $ FnVal env args $ BStmt pos block
+  env <- ask
+  env' <- declareInit pos i $ FnVal env args $ block
+  local (changeEnvTo env') $ changeVal pos i $ FnVal env' args $ block
 
 addItemList :: [Item] -> TurboMonad Env
 addItemList [] = ask
@@ -39,16 +47,9 @@ addItemList (i:l) = do
   env <- addItem i
   local (changeEnvTo env) $ addItemList l
 
-addItemVal :: Ident -> Value -> TurboMonad Env
-addItemVal ident val = do
-  env <- ask
-  store <- get
-  setVal (newLoc store) val
-  return $ M.insert ident (newLoc store) env
-
 addItem :: Item -> TurboMonad Env
-addItem (NoInit pos ident) = addItemVal ident NullVal
-addItem (Init pos ident expr) = eval expr >>= addItemVal ident
+addItem (NoInit pos ident) = declareNoInit pos ident
+addItem (Init pos ident expr) = eval expr >>= declareInit pos ident
 -- TODO array
 
 ------------------------ Statements --------------------------------------------
@@ -56,13 +57,16 @@ addItem (Init pos ident expr) = eval expr >>= addItemVal ident
 
 interpretStmt :: Stmt -> TurboMonad RetType
 interpretStmt (SDecl pos decl) = interpretDecl decl >>= noReturn
-interpretStmt (BStmt pos block) = interpretBlock block
+interpretStmt (BStmt pos block) = do
+  interpretBlock block
+  env <- ask
+  ask >>= noReturn
+
 interpretStmt (Ret pos e) = eval e >>= returnVal
 
 interpretStmt (Ass pos ident expr) = do
-  loc <- getLoc pos ident
   val <- eval expr
-  setVal loc val >>= noReturn
+  changeVal pos ident val >>= noReturn
 
 interpretStmt (Cond pos expr s) =
   executeCondAlt pos expr (interpretStmt s) $ ask >>= noReturn
@@ -75,15 +79,15 @@ interpretStmt (While pos e s) = do
   executeCondAlt pos e (interpretStmt (While pos e s)) $ ask >>= noReturn
 
 interpretStmt (Incr pos ident) = do
-  val <- getIdentValue pos ident
+  val <- readVal pos ident
   case val of
-    IntVal x -> (setIdentValue pos ident $ IntVal (x + 1)) >>= noReturn
+    IntVal x -> changeVal pos ident (IntVal (x + 1)) >>= noReturn
     _ -> throwError $ errorPos pos $ errorMsg $ TypeErr "int"
 
 interpretStmt (Decr pos ident) = do
-  val <- getIdentValue pos ident
+  val <- readVal pos ident
   case val of
-    IntVal x -> (setIdentValue pos ident $ IntVal (x - 1)) >>= noReturn
+    IntVal x -> changeVal pos ident (IntVal (x - 1)) >>= noReturn
     _ -> throwError $ errorPos pos $ errorMsg $ TypeErr "int"
 
 interpretStmt (SExp pos e) = interpretSExp pos e
@@ -118,8 +122,7 @@ executeCondAlt pos expr alt1 alt2 = do
 
 interpretBlock :: Block -> TurboMonad RetType
 interpretBlock (Block p stmt) = do
-  env <- ask
-  local (changeEnvTo env) $ interpretStmtList stmt
+  local increaseScope $ interpretStmtList stmt
 
 data RetType = RetVal Value | RetBrk Position | RetCnt Position | RetEnv Env
 
@@ -160,7 +163,7 @@ eval (Neg pos e) = do
   IntVal v <- eval e
   return  $ IntVal $ (-1) * v
 
-eval (EVar pos ident) = getLoc pos ident >>= (getVal pos)
+eval (EVar pos ident) = readVal pos ident
 
 eval (EAnd pos e1 e2) = evalAndOr pos e1 e2 (&&)
 
@@ -222,18 +225,18 @@ evalAddOp (Minus pos) = (-)
 
 evalFunction :: Position -> Ident -> [Expr] -> TurboMonad Value
 evalFunction pos ident exprs = do
-  fun <- getIdentValue pos ident
+  fun <- readVal pos ident
   case fun of
-    FnVal env args s -> do
+    FnVal env args b -> do
       globEnv <- ask
-      envDecl <- local (changeEnvTo env) $ evalArgs pos ident exprs args globEnv
-      local (changeEnvTo envDecl) $ evalFunStmt s
+      envDecl <- local (changeEnvTo $ increaseScope env) $ evalArgs pos ident exprs args globEnv
+      local (changeEnvTo envDecl) $ evalFunStmt b
     _ -> throwError $ errorPos pos $ errorMsg $ NotFun $ show ident
 
 
-evalFunStmt:: Stmt -> TurboMonad Value
-evalFunStmt s = do
-  ret <- interpretStmt s
+evalFunStmt:: Block -> TurboMonad Value
+evalFunStmt b = do
+  ret <- interpretBlock b
   case ret of
     RetVal v -> return v
     _ -> throwError "Function does not return"
@@ -245,17 +248,13 @@ evalArgs pos ident exprs args globEnv = do
     False -> throwError $ errorPos pos $ errorMsg $
       ArgNum ident (toInteger $ L.length exprs) (toInteger $ L.length args)
 
-addArg ::  Value -> Arg -> TurboMonad Env
-addArg val (Arg pos t ident) = addItemVal ident val
---TODO : referencje
-
 declareArgList :: [Expr] -> [Arg] -> Env -> TurboMonad Env
 declareArgList [] [] ge = ask
 declareArgList (e:el) (a:al) ge = do
   case a of
     Arg pos t ident -> do
       val <- local (changeEnvTo ge) $ eval e
-      env <- addItemVal ident val
+      env <- declareInit pos ident val
       local (changeEnvTo env) $ declareArgList el al ge
     ArgRef pos t ident -> do
       case e of
