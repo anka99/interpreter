@@ -1,0 +1,16 @@
+int main() {
+  int x = 1;
+  if (x == 1) {
+    x = 2;
+    int x = 5;
+  }
+  else {
+    x = 3;
+  }
+
+  print(x);
+  return 0;
+}
+
+// expected output :
+// 2

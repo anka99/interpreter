@@ -58,9 +58,10 @@ addItem (Init pos ident expr) = eval expr >>= declareInit pos ident
 interpretStmt :: Stmt -> TurboMonad RetType
 interpretStmt (SDecl pos decl) = interpretDecl decl >>= noReturn
 interpretStmt (BStmt pos block) = do
-  interpretBlock block
-  env <- ask
-  ask >>= noReturn
+  res <- interpretBlock block
+  case res of
+    RetEnv env -> ask >>= noReturn
+    _ -> return $ res
 
 interpretStmt (Ret pos e) = eval e >>= returnVal
 
@@ -75,8 +76,11 @@ interpretStmt (CondElse pos expr s1 s2) =
   executeCondAlt pos expr (interpretStmt s1) (interpretStmt s2)
 
 interpretStmt (While pos e s) = do
-  executeCondAlt pos e (interpretStmt s) $ ask >>= noReturn
-  executeCondAlt pos e (interpretStmt (While pos e s)) $ ask >>= noReturn
+  res <- executeCondAlt pos e (interpretStmt s) $ ask >>= noReturn
+  case res of
+    (RetBrk p) -> ask >>= noReturn
+    (RetVal v) -> return res
+    _ ->  executeCondAlt pos e (interpretStmt (While pos e s)) $ ask >>= noReturn
 
 interpretStmt (Incr pos ident) = do
   val <- readVal pos ident
@@ -99,6 +103,11 @@ interpretStmt (Cnt pos) = return $ RetCnt pos
 interpretStmt s = do
   liftIO $ putStrLn $ show s
   ask >>= noReturn
+
+handleBreak :: RetType -> TurboMonad RetType -> TurboMonad RetType
+handleBreak (RetBrk pos) cont = ask >>= noReturn
+handleBreak (RetVal val) cont = return $ RetVal val
+handleBreak _ cont = cont
 
 interpretSExp :: Position -> Expr -> TurboMonad RetType
 interpretSExp p1 (EApp p2 (Ident "print") [e]) = do
@@ -192,6 +201,7 @@ evalAndOr pos e1 e2 op = do
 evalRel :: Position -> Value -> RelOp -> Value -> TurboMonad Value
 evalRel pos (IntVal v1) op (IntVal v2) = return $ BoolVal $ evalRelOp op v1 v2
 evalRel pos (StringVal s1) op (StringVal s2) = return $ BoolVal $ evalRelOp op s1 s2
+evalRel pos (BoolVal b1) (EQU p) (BoolVal b2) = return $ BoolVal $ evalRelOp (EQU p) b1 b2
 evalRel pos _ _ _ = throwError $ errorPos pos $ errorMsg $ TypeErr "left: string, right: string or left: int, right: int"
 
 evalRelOp :: Ord a => RelOp -> a -> a -> Bool
