@@ -20,6 +20,7 @@ import SkelEmm ()
 import Eval ( eval, interpretDeclList, evalFunction )
 import Turbo
 import Memory
+import Typechecker ( checkProgramTypes )
 
 type Err        = Either String
 type ParseFun a = [Token] -> Err a
@@ -31,13 +32,15 @@ interpret content =
       putStrLn err
       exitFailure
     Right tree -> do
-      (res, store) <- runTurbo emptyEnv empty (runProgram tree)
-      case res of
-        Right (env, val) -> do
-          -- putStrLn $ show store
-          -- putStrLn $ show env
-          putStrLn $ show val
-        Left err -> putStrLn err
+      checkProgramTypes tree
+
+      -- (res, store) <- runTurbo emptyEnv empty (runProgram tree)
+      -- case res of
+      --   Right (env, val) -> do
+      --     -- putStrLn $ show store
+      --     -- putStrLn $ show env
+      --     putStrLn $ show val
+      --   Left err -> putStrLn err
       -- exitWith interpretProgram tree
   where
   parsedContent = pProgram $ myLexer content

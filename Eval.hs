@@ -56,6 +56,7 @@ addItem (Init pos ident expr) = eval expr >>= declareInit pos ident
 
 
 interpretStmt :: Stmt -> TurboMonad RetType
+interpretStmt (Empty pos) = ask >>= noReturn
 interpretStmt (SDecl pos decl) = interpretDecl decl >>= noReturn
 interpretStmt (BStmt pos block) = do
   res <- interpretBlock block

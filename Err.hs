@@ -11,7 +11,7 @@ errorPos :: Position -> String -> String
 errorPos (Just (line, col)) msg =
   "Error in line " ++ show line ++ ", column " ++ show col ++ ": " ++ msg
 
-errorPos Nothing _ = "Function main not found."
+errorPos Nothing _ = "Error : Function main not found."
 
 data ErrType
   = TypeErr String
@@ -22,6 +22,9 @@ data ErrType
   | ArgNum Ident Integer Integer
   | NotFun String
   | NotRef
+  | DiffRets
+  | CntErr
+  | BrkErr
     deriving (Show)
 
 errorMsg :: ErrType -> String
@@ -35,3 +38,6 @@ errorMsg (ArgNum ident i1 i2) =
   ".Expected " ++ show i2
 errorMsg (NotFun s) = "Not a function: " ++ s;
 errorMsg NotRef  = "Not a variable name"
+errorMsg DiffRets = "Mismatching types of the return statements"
+errorMsg CntErr = "Continue statement outside loop"
+errorMsg BrkErr = "Break statement outside loop"
