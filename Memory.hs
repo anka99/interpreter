@@ -11,15 +11,6 @@ import AbsEmm
 import Turbo
 import Err
 
--- declareInit,
---                 changeEnvTo,
---                 increaseScope,
---                 declareNoInit,
---                 changeVal,
---                 readVal,
---                 getLoc,
---                 setLoc
-
 declareInit :: Position -> Ident -> Value -> TurboMonad Env
 declareInit p i v = do
   (env, currScope) <- ask
