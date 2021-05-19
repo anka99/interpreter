@@ -33,15 +33,15 @@ interpret content =
       exitFailure
     Right tree -> do
       checkProgramTypes tree
+      (res, store) <- runTurbo emptyEnv empty (runProgram tree)
+      case res of
+        Right (env, IntVal val) -> do
+          putStrLn $ show val
+          exitSuccess
+        Left err -> do
+          putStrLn err
+          exitFailure
 
-      -- (res, store) <- runTurbo emptyEnv empty (runProgram tree)
-      -- case res of
-      --   Right (env, val) -> do
-      --     -- putStrLn $ show store
-      --     -- putStrLn $ show env
-      --     putStrLn $ show val
-      --   Left err -> putStrLn err
-      -- exitWith interpretProgram tree
   where
   parsedContent = pProgram $ myLexer content
 

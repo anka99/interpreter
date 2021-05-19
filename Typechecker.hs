@@ -11,6 +11,7 @@ import Err
 
 import qualified Data.Map as Map
 import qualified Data.List as L
+import System.Exit ( exitFailure )
 
 type Position = BNFC'Position
 type Scope = Int
@@ -25,12 +26,25 @@ emptyEnv :: Env
 emptyEnv = (Map.empty, 0)
 
 checkTypes :: Program -> Typechecker Env
-checkTypes (Program pos decls) = checkDeclList decls
+checkTypes (Program pos decls) = do
+  env <- checkDeclList decls
+  local (const env) $ checkMain
+
+checkMain :: Typechecker Env
+checkMain = do
+  main <- getValSafe (Just (1, 1)) (Ident "main")
+  case main of
+    (Fun _ (Int _) [], p, s) -> ask
+    (_, p, _) -> throwError $ errorPos p $ errorMsg MainErr
 
 checkProgramTypes :: Program -> IO ()
 checkProgramTypes tree = do
-  res <- runTypechecker emptyEnv (checkTypes tree)
-  putStrLn $ show res
+  check <- runTypechecker emptyEnv (checkTypes tree)
+  case check of
+    Left err -> do
+      putStrLn err
+      exitFailure
+    Right _ -> return ()
 
 addVal :: Ident -> Type -> Position -> Typechecker Env
 addVal i tp pos = do
@@ -39,7 +53,7 @@ addVal i tp pos = do
     Nothing -> return $ (Map.insert i (tp, pos, currScope) env, currScope)
     Just (t, p, sc) -> do
       case sc < currScope of
-        False -> throwError $ errorPos p $ errorMsg $ MulDecl $ show i
+        False -> throwError $ errorPos p $ errorMsg $ MulDecl $ showI i
         True -> return $ (Map.insert i (tp, pos, currScope) env, currScope)
 
 getVal :: Ident -> Typechecker (Maybe (Type, Position, Scope))
@@ -51,7 +65,7 @@ getValSafe :: Position -> Ident -> Typechecker (Type, Position, Scope)
 getValSafe pos ident = do
   val <- getVal ident
   case val of
-    Nothing -> throwError $ errorPos pos $ errorMsg $ Undecl $ show ident
+    Nothing -> throwError $ errorPos pos $ errorMsg $ Undecl $ showI ident
     Just (t, p, s) -> return (t, p, s)
 
 checkDeclList :: [Decl] -> Typechecker Env
@@ -70,7 +84,7 @@ checkDecl (FnDecl pos funT ident args block) = do
     RetVal p t -> do
       case compareTypes t funT of
         True -> return env
-        False -> throwError $ errorPos p $ errorMsg $ TypeErr $ show funT
+        False -> throwError $ errorPos p $ errorMsg $ TypeErr $ showT funT
     RetEnv _ -> do
       case funT of
         Void _ -> return env
@@ -117,7 +131,7 @@ checkAss pos ident expr = do
   tExp <- evalExprType expr
   case compareTypes tExp tId of
     True -> return ()
-    False -> throwError $ errorPos p $ errorMsg $ TypeErr $ show tId
+    False -> throwError $ errorPos p $ errorMsg $ TypeErr $ showT tId
 
 
 ------------------------ Statements --------------------------------------------
@@ -274,7 +288,7 @@ assertTypeList p (t:tl) (e:el) = do
   tExp <- evalExprType e
   case compareTypes t tExp of
     True -> return ()
-    False -> throwError $ errorPos p $ errorMsg $ TypeErr $ show t
+    False -> throwError $ errorPos p $ errorMsg $ TypeErr $ showT t
 
 assertRel:: Position -> Type -> RelOp -> Type -> Typechecker ()
 assertRel p (Int p1) op (Int p2) = return ()
@@ -283,8 +297,8 @@ assertRel p (Bool p1) (EQU p0) (Bool p2) = return ()
 assertRel p _ _ _ = throwError $ errorPos p $ errorMsg $ TypeErr "left: string, right: string or left: int, right: int"
 
 assertNotVoid :: Position -> Type -> Typechecker ()
-assertNotVoid pos (Void p) = return ()
-assertNotVoid pos _ = throwError $ errorPos pos $ errorMsg VoidErr
+assertNotVoid pos (Void p) = throwError $ errorPos pos $ errorMsg VoidErr
+assertNotVoid pos _ = return ()
 
 assertBool :: Position -> Type -> Typechecker ()
 assertBool pos (Bool p) = return ()

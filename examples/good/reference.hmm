@@ -9,3 +9,6 @@ int main () {
   print(i);
   return y;
 }
+
+// expected output:
+// 1

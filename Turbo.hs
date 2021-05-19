@@ -9,6 +9,7 @@ import Control.Monad.Reader
 import AbsEmm
 
 import qualified Data.Map as Map
+import Data.Text ( toLower, pack )
 
 data Value
   = IntVal Integer
@@ -16,7 +17,14 @@ data Value
   | StringVal String
   | FnVal Env [Arg] Block
   | NullVal
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord)
+
+instance Show Value where
+    show (IntVal v) = show v
+    show (BoolVal b) = show $ toLower $ pack $ show b
+    show (StringVal s) = show s
+    show (FnVal  env args block) = "func"
+    show (NullVal) = "null"
 
 type Scope = Int
 type Loc = Int

@@ -119,9 +119,6 @@ interpretSExp p1 (EApp p2 (Ident "print") [e]) = do
 interpretSExp p1 (EApp p2 (Ident "print") l) =
   throwError $ errorPos p1 $ errorMsg $ ArgNum (Ident "print") (toInteger $ L.length l) 1
 
-interpretSExpr _ _ = ask >>= noReturn --TODO: wypisywać w interactive
-
-
 executeCondAlt :: Position -> Expr -> TurboMonad RetType -> TurboMonad RetType -> TurboMonad RetType
 executeCondAlt pos expr alt1 alt2 = do
   val <- eval expr
@@ -162,7 +159,7 @@ eval (ELitFalse pos) = return $ BoolVal False
 eval (EMul pos e1 op e2) = do
   IntVal v1 <- eval e1
   IntVal v2 <- eval e2
-  return $ IntVal $ evalMulOp op v1 v2
+  assertNotZero pos (evalMulOp op) v1 v2
 
 eval (EAdd pos e1 op e2) = do
   v1 <- eval e1 >>= evalIntValSafe pos
@@ -224,6 +221,12 @@ evalBoolValSafe pos v = do
   case v of
     BoolVal b -> return b
     _ -> throwError $ errorPos pos $ errorMsg $ TypeErr "bool"
+
+assertNotZero :: Position -> (Integer -> Integer -> Integer) -> Integer -> Integer -> TurboMonad Value
+assertNotZero p div v 0
+  | v == 0 = return $ IntVal 1
+  | otherwise = throwError $ errorPosR p $ errorMsg DivZero
+assertNotZero p op v1 v2 = return $ IntVal $ op v1 v2
 
 evalMulOp :: MulOp -> Integer -> Integer -> Integer
 evalMulOp (Times pos) = (*)
