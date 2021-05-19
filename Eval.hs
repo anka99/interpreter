@@ -37,8 +37,8 @@ interpretDecl :: Decl -> TurboMonad Env
 interpretDecl (Decl pos t items) = addItemList items
 interpretDecl (FnDecl pos t i args block) = do
   env <- ask
-  env' <- declareInit pos i $ FnVal env args $ block
-  local (const env') $ changeVal pos i $ FnVal env' args $ block
+  env' <- declareInit pos i $ FnVal t env args $ block
+  local (const env') $ changeVal pos i $ FnVal t env' args $ block
 
 addItemList :: [Item] -> TurboMonad Env
 addItemList [] = ask
@@ -241,25 +241,29 @@ evalFunction :: Position -> Ident -> [Expr] -> TurboMonad Value
 evalFunction pos ident exprs = do
   fun <- readVal pos ident
   case fun of
-    FnVal env args b -> do
+    FnVal t env args b -> do
       globEnv <- ask
       envDecl <- local (const $ increaseScope env) $ evalArgs pos ident exprs args globEnv
-      local (const envDecl) $ evalFunStmt b
+      local (const envDecl) $ evalFunStmt pos t b
     _ -> throwError $ errorPosR pos $ errorMsg $ NotFun $ show ident
 
-evalFunStmt:: Block -> TurboMonad Value
-evalFunStmt b = do
+evalFunStmt:: Position -> Type -> Block -> TurboMonad Value
+evalFunStmt p (Void _) b = do
+  interpretBlock b
+  return $ IntVal 0
+
+evalFunStmt p _ b = do
   ret <- interpretBlock b
   case ret of
     RetVal v -> return v
-    _ -> throwError "Function does not return"
+    _ -> throwError $ errorPosR p $ errorMsg NoRet
 
 evalArgs :: Position -> Ident -> [Expr] -> [Arg] -> Env -> TurboMonad Env
 evalArgs pos ident exprs args globEnv = do
   case L.length exprs == L.length args of
     True -> declareArgList exprs args globEnv
     False -> throwError $ errorPosR pos $ errorMsg $
-      ArgNum ident (toInteger $ L.length exprs) (toInteger $ L.length args)
+      ArgNum ident (toInteger $ L.length args) (toInteger $ L.length exprs) 
 
 declareArgList :: [Expr] -> [Arg] -> Env -> TurboMonad Env
 declareArgList [] [] ge = ask

@@ -1,0 +1,32 @@
+int i = 0;
+
+int x () {
+  i++;
+  if (i == 5) {
+    return i;
+  }
+  else {
+    return x();
+  }
+}
+
+bool f(int x, bool y, string z) {
+  print(x);
+  print(y);
+  print(z);
+  return false;
+}
+
+int main() {
+  print(f(42, true, "test"));
+  print(i);
+  print(x());
+  return 0;
+}
+
+// 42
+// true
+// test
+// false
+// 0
+// 5

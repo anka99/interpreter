@@ -53,8 +53,8 @@ errorMsg (Undecl s) = "Undeclared variable " ++ s
 errorMsg Uninit = "Uninitialized value"
 errorMsg NoRet = "Function returns no value"
 errorMsg (ArgNum ident i1 i2) =
-  "Invalid number of arguments for function " ++ show ident ++ ": " ++ show i1 ++
-  ".Expected " ++ show i2
+  "Invalid number of arguments for function " ++ showI ident ++
+  ". Expected " ++ show i1 ++ ", got " ++ show i2
 errorMsg (NotFun s) = "Not a function: " ++ s;
 errorMsg NotRef  = "Not a variable name"
 errorMsg DiffRets = "Mismatching types of the return statements"

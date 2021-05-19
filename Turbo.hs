@@ -15,7 +15,7 @@ data Value
   = IntVal Integer
   | BoolVal Bool
   | StringVal String
-  | FnVal Env [Arg] Block
+  | FnVal Type Env [Arg] Block
   | NullVal
     deriving (Eq, Ord)
 
@@ -24,7 +24,7 @@ instance Show Value where
     show (BoolVal True) = "true"
     show (BoolVal False) = "false"
     show (StringVal s) = s
-    show (FnVal  env args block) = "func"
+    show (FnVal t env args block) = "func"
     show (NullVal) = "null"
 
 type Scope = Int

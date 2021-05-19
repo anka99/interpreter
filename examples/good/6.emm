@@ -1,6 +1,13 @@
 void f () {}
 
+int x (int i) {
+  return i + 1;
+}
+
 int main() {
  f();
+ print(x(2));
  return 0;
 }
+
+// 3

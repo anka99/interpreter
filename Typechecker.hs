@@ -190,7 +190,7 @@ checkSExp (EApp p (Ident "print") [e]) = do
   ask >>= noReturn
 
 checkSExp (EApp p (Ident "print") l) =
-  throwError $ errorPos p $ errorMsg $ ArgNum (Ident "print") (toInteger $ L.length l) 1
+  throwError $ errorPos p $ errorMsg $ ArgNum (Ident "print") 1 $ toInteger $ L.length l
 
 checkSExp e = do
   evalExprType e
