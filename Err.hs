@@ -25,6 +25,7 @@ data ErrType
   | DiffRets
   | CntErr
   | BrkErr
+  | VoidErr
     deriving (Show)
 
 errorMsg :: ErrType -> String
@@ -41,3 +42,4 @@ errorMsg NotRef  = "Not a variable name"
 errorMsg DiffRets = "Mismatching types of the return statements"
 errorMsg CntErr = "Continue statement outside loop"
 errorMsg BrkErr = "Break statement outside loop"
+errorMsg VoidErr = "Cannot print void value"

@@ -10,7 +10,7 @@ import AbsEmm
 import Err
 
 import qualified Data.Map as Map
-import qualified Data.List as List
+import qualified Data.List as L
 
 type Position = BNFC'Position
 type Scope = Int
@@ -92,11 +92,11 @@ checkFunBlock :: Block -> Typechecker RetType
 checkFunBlock (Block p stmts) = checkStmtList stmts
 
 getArgListTypes:: [Arg] -> [Type]
-getArgListTypes = List.map getArgType
+getArgListTypes = L.map getArgType
 
-getArgType :: Arg ->  Type
+getArgType :: Arg -> Type
 getArgType (Arg p t i) = t
-getArgtype (ArgRef p t i) = t
+getArgType (ArgRef p t i) = t
 
 addItemList :: Type -> [Item] -> Typechecker Env
 addItemList t [] = ask
@@ -115,9 +115,9 @@ checkAss :: Position -> Ident -> Expr -> Typechecker ()
 checkAss pos ident expr = do
   (tId, p, s) <- getValSafe pos ident
   tExp <- evalExprType expr
-  case tExp == tId of
+  case compareTypes tExp tId of
     True -> return ()
-    False -> throwError $ errorPos pos $ errorMsg $ TypeErr $ show tId
+    False -> throwError $ errorPos p $ errorMsg $ TypeErr $ show tId
 
 
 ------------------------ Statements --------------------------------------------
@@ -140,9 +140,9 @@ checkStmt (Cond pos expr s) = do
 
 checkStmt (CondElse pos expr s1 s2) = do
   evalExprType expr >>= assertBool pos
-  checkStmt s1
-  checkStmt s2
-  ask >>= noReturn
+  r1 <- checkStmt s1
+  r2 <- checkStmt s2
+  unifyCondElseRet r1 r2
 
 checkStmt (While pos expr s) = do
   evalExprType expr >>= assertBool pos
@@ -158,9 +158,7 @@ checkStmt (Incr pos ident) = do
 
 checkStmt (Decr pos ident) = checkStmt (Incr pos ident)
 
-checkStmt (SExp pos e) = do
-  evalExprType e
-  ask >>= noReturn
+checkStmt (SExp p e) = checkSExp e
 
 checkStmt (Brk pos) = return $ RetBrk pos
 
@@ -171,6 +169,18 @@ data RetType
   | RetBrk Position
   | RetCnt Position
   | RetEnv Env
+
+checkSExp :: Expr -> Typechecker RetType
+checkSExp (EApp p (Ident "print") [e]) = do
+  evalExprType e >>= assertNotVoid p
+  ask >>= noReturn
+
+checkSExp (EApp p (Ident "print") l) =
+  throwError $ errorPos p $ errorMsg $ ArgNum (Ident "print") (toInteger $ L.length l) 1
+
+checkSExp e = do
+  evalExprType e
+  ask >>= noReturn
 
 unifyCondElseRet :: RetType -> RetType -> Typechecker RetType
 unifyCondElseRet (RetVal p1 t1) (RetVal p2 t2)
@@ -194,7 +204,7 @@ checkBlock :: Block -> Typechecker RetType
 checkBlock (Block p stmts) = do
   res <- local increaseScope $ checkStmtList stmts
   case res of
-    RetEnv _ -> ask >>= noReturn
+    RetEnv env -> ask >>= noReturn
     _ -> return $ res
 
 checkStmtList :: [Stmt] -> Typechecker RetType
@@ -249,8 +259,22 @@ evalExprType (EAnd p e1 e2) = do
 
 evalExprType (EOr p e1 e2) = evalExprType (EAnd p e1 e2)
 
--- evalExprType (EApp p i es) = do --TODO
+evalExprType (EApp pos i exprs) = do
+  (Fun fp ft types, p, _) <- getValSafe pos i
+  case L.length exprs == L.length types of
+    False -> throwError $ errorPos pos $ errorMsg $
+      ArgNum i (toInteger $ L.length types) (toInteger $ L.length exprs)
+    True -> assertTypeList pos types exprs
+  return ft
 
+
+assertTypeList :: Position -> [Type] -> [Expr] -> Typechecker ()
+assertTypeList p [] [] = return ()
+assertTypeList p (t:tl) (e:el) = do
+  tExp <- evalExprType e
+  case compareTypes t tExp of
+    True -> return ()
+    False -> throwError $ errorPos p $ errorMsg $ TypeErr $ show t
 
 assertRel:: Position -> Type -> RelOp -> Type -> Typechecker ()
 assertRel p (Int p1) op (Int p2) = return ()
@@ -258,10 +282,14 @@ assertRel p (Str p1) op (Str p2) = return ()
 assertRel p (Bool p1) (EQU p0) (Bool p2) = return ()
 assertRel p _ _ _ = throwError $ errorPos p $ errorMsg $ TypeErr "left: string, right: string or left: int, right: int"
 
-assertBool:: Position -> Type -> Typechecker ()
+assertNotVoid :: Position -> Type -> Typechecker ()
+assertNotVoid pos (Void p) = return ()
+assertNotVoid pos _ = throwError $ errorPos pos $ errorMsg VoidErr
+
+assertBool :: Position -> Type -> Typechecker ()
 assertBool pos (Bool p) = return ()
 assertBool pos _ = throwError $ errorPos pos $ errorMsg $ TypeErr "bool"
 
-assertInt:: Position -> Type -> Typechecker ()
+assertInt :: Position -> Type -> Typechecker ()
 assertInt pos (Int p) = return ()
 assertInt pos _ = throwError $ errorPos pos $ errorMsg $ TypeErr "int"
