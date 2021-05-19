@@ -118,6 +118,8 @@ interpretSExp p1 (EApp p2 (Ident "print") [e]) = do
 interpretSExp p1 (EApp p2 (Ident "print") l) =
   throwError $ errorPosR p1 $ errorMsg $ ArgNum (Ident "print") (toInteger $ L.length l) 1
 
+interpretSExp p e = eval e >> ask >>= noReturn
+
 executeCondAlt :: Position -> Expr -> TurboMonad RetType -> TurboMonad RetType -> TurboMonad RetType
 executeCondAlt pos expr alt1 alt2 = do
   val <- eval expr
@@ -158,7 +160,7 @@ eval (ELitFalse pos) = return $ BoolVal False
 eval (EMul pos e1 op e2) = do
   IntVal v1 <- eval e1
   IntVal v2 <- eval e2
-  assertNotZero pos (evalMulOp op) v1 v2
+  assertNotZero op v1 v2
 
 eval (EAdd pos e1 op e2) = do
   v1 <- eval e1 >>= evalIntValSafe pos
@@ -199,7 +201,6 @@ evalRel :: Position -> Value -> RelOp -> Value -> TurboMonad Value
 evalRel pos (IntVal v1) op (IntVal v2) = return $ BoolVal $ evalRelOp op v1 v2
 evalRel pos (StringVal s1) op (StringVal s2) = return $ BoolVal $ evalRelOp op s1 s2
 evalRel pos (BoolVal b1) (EQU p) (BoolVal b2) = return $ BoolVal $ evalRelOp (EQU p) b1 b2
-evalRel pos _ _ _ = throwError $ errorPosR pos $ errorMsg $ TypeErr "left: string, right: string or left: int, right: int"
 
 evalRelOp :: Ord a => RelOp -> a -> a -> Bool
 evalRelOp (LTH pos) = (<)
@@ -221,11 +222,11 @@ evalBoolValSafe pos v = do
     BoolVal b -> return b
     _ -> throwError $ errorPosR pos $ errorMsg $ TypeErr "bool"
 
-assertNotZero :: Position -> (Integer -> Integer -> Integer) -> Integer -> Integer -> TurboMonad Value
-assertNotZero p div v 0
+assertNotZero :: MulOp -> Integer -> Integer -> TurboMonad Value
+assertNotZero (Div p) v 0
   | v == 0 = return $ IntVal 1
   | otherwise = throwError $ errorPosR p $ errorMsg DivZero
-assertNotZero p op v1 v2 = return $ IntVal $ op v1 v2
+assertNotZero op v1 v2 = return $ IntVal $ (evalMulOp op) v1 v2
 
 evalMulOp :: MulOp -> Integer -> Integer -> Integer
 evalMulOp (Times pos) = (*)
@@ -245,7 +246,6 @@ evalFunction pos ident exprs = do
       envDecl <- local (const $ increaseScope env) $ evalArgs pos ident exprs args globEnv
       local (const envDecl) $ evalFunStmt b
     _ -> throwError $ errorPosR pos $ errorMsg $ NotFun $ show ident
-
 
 evalFunStmt:: Block -> TurboMonad Value
 evalFunStmt b = do

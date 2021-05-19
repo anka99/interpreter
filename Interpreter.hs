@@ -36,7 +36,6 @@ interpret content =
       (res, store) <- runTurbo emptyEnv empty (runProgram tree)
       case res of
         Right (env, IntVal val) -> do
-          putStrLn $ show val
           exitSuccess
         Left err -> do
           putStrLn err

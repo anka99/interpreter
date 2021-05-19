@@ -1,0 +1,11 @@
+int main() {
+  int x;
+  x = 1;
+  bool y = false;
+  print(x);
+  print(y);
+  return 0;
+}
+
+// 1
+// false

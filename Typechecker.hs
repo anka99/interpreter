@@ -200,6 +200,11 @@ unifyCondElseRet :: RetType -> RetType -> Typechecker RetType
 unifyCondElseRet (RetVal p1 t1) (RetVal p2 t2)
   | compareTypes t1 t2 = return $ RetVal p1 t1
   | otherwise = throwError $ errorPos p1 $ errorPos p2 $ errorMsg $ DiffRets
+unifyCondElseRet (RetBrk p) _ = return $ RetBrk p
+unifyCondElseRet _ (RetBrk p) = return $ RetBrk p
+unifyCondElseRet (RetCnt p) _ = return $ RetCnt p
+unifyCondElseRet _ (RetCnt p) = return $ RetCnt p
+unifyCondElseRet _ _ = ask >>= noReturn
 
 compareTypes :: Type -> Type -> Bool
 compareTypes (Int _) (Int _) = True
@@ -227,7 +232,7 @@ checkStmtList (s:l) = do
   ret <- checkStmt s
   case ret of
     RetEnv e -> local (const e) $ checkStmtList l
-    _ -> return ret
+    _ -> checkStmtList l >> return ret
 
 ------------------------ Expressions -------------------------------------------
 
@@ -280,7 +285,6 @@ evalExprType (EApp pos i exprs) = do
       ArgNum i (toInteger $ L.length types) (toInteger $ L.length exprs)
     True -> assertTypeList pos types exprs
   return ft
-
 
 assertTypeList :: Position -> [Type] -> [Expr] -> Typechecker ()
 assertTypeList p [] [] = return ()

@@ -22,7 +22,7 @@ parse []         = getContents >>= interpret
 parse fs         = mapM_ runFile fs
 
 runFile :: FilePath -> IO ()
-runFile f = putStrLn f >> readFile f >>= interpret
+runFile f = readFile f >>= interpret
 
 usage :: IO ()
 usage = do

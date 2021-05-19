@@ -1,0 +1,12 @@
+int main() {
+ print (6 + 7 * 2 / 4 % 5);
+ print("test");
+ print(8 == 7);
+ print(true);
+ return 0;
+}
+
+// 9
+// test
+// false
+// true

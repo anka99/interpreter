@@ -1,0 +1,13 @@
+int main() {
+  int x = 4 - 2 + 3 * 8;
+  x = x % 3;
+  print(x);
+  int y = (8 / x) * 0; // y = 0
+  y = y/0;
+  print(y);
+  return 0;
+}
+
+// expected output:
+// 1
+// 2

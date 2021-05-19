@@ -21,8 +21,9 @@ data Value
 
 instance Show Value where
     show (IntVal v) = show v
-    show (BoolVal b) = show $ toLower $ pack $ show b
-    show (StringVal s) = show s
+    show (BoolVal True) = "true"
+    show (BoolVal False) = "false"
+    show (StringVal s) = s
     show (FnVal  env args block) = "func"
     show (NullVal) = "null"
 
@@ -31,7 +32,6 @@ type Loc = Int
 type Env = (Map.Map Ident (Loc, Scope), Scope)
 type Store = Map.Map Loc Value
 
--- TODO : być może coś zmienić, bo Mr. C.env
 type TurboMonad a = ReaderT Env (ExceptT String (StateT Store IO)) a
 
 type Position = BNFC'Position
