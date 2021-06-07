@@ -1,0 +1,11 @@
+int x;
+
+void p() {
+  x = "abc";
+}
+
+int main () {
+  string x;
+  p();
+  return 0;
+}

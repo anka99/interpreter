@@ -131,7 +131,7 @@ checkAss pos ident expr = do
   tExp <- evalExprType expr
   case compareTypes tExp tId of
     True -> return ()
-    False -> throwError $ errorPos p $ errorMsg $ TypeErr $ showT tId
+    False -> throwError $ errorPos pos $ errorMsg $ TypeErr $ showT tId
 
 
 ------------------------ Statements --------------------------------------------

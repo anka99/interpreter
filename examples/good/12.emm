@@ -1,0 +1,20 @@
+int x;
+
+int main() {
+  string x = "test";
+  void p() {
+    x = "abcd";
+  }
+
+  {
+    int x = 0;
+    p();
+    print(x);
+  }
+
+  print(x);
+  return 0;
+}
+
+// 0
+// abcd

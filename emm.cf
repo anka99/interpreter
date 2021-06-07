@@ -22,8 +22,6 @@ NoInit.    Item ::= Ident ;
 
 Init.      Item ::= Ident "=" Expr ;
 
-Array.     Item ::= Ident "[" Expr "]" ;
-
 separator nonempty Item "," ;
 
 -- statements ----------------------------------------------
@@ -40,15 +38,9 @@ SDecl.     Stmt ::= Decl ;
 
 Ass.       Stmt ::= Ident "=" Expr  ";" ;
 
-AssArr.    Stmt ::= Ident "[" Expr "]" "=" Expr ";" ;
-
 Incr.      Stmt ::= Ident "++"  ";" ;
 
-IncrArr.   Stmt ::= Ident "[" Expr "]" "++" ";" ;
-
 Decr.      Stmt ::= Ident "--"  ";" ;
-
-DecrArr.   Stmt ::= Ident "[" Expr "]" "--"  ";" ;
 
 Ret.       Stmt ::= "return" Expr ";" ;
 
@@ -81,8 +73,6 @@ internal   Fun. Type ::= Type "(" [Type] ")" ;
 separator  Type "," ;
 
 -- Expressions ---------------------------------------------
-
-EArr.      Expr6 ::= Ident "[" Expr "]" ;
 
 EVar.      Expr6 ::= Ident ;
 
